@@ -43,6 +43,34 @@ def is_allowed(uid: int) -> bool:
     return not ALLOWED or uid in ALLOWED
 
 
+def _progress(status: Message, label: str):
+    loop = asyncio.get_running_loop()
+    last = [0.0, ""]
+
+    def cb(current, total):
+        try:
+            now = time.monotonic()
+            total = total or 0
+            pct = f"{current * 100 // total}%" if total else "?"
+            text = f"{label} {pct} · {fmt(current)}"
+            if text == last[1] or (now - last[0] < 4 and pct != "100%"):
+                return
+            last[0] = now
+            last[1] = text
+
+            async def edit():
+                try:
+                    await status.edit_text(text)
+                except Exception:
+                    pass
+
+            asyncio.run_coroutine_threadsafe(edit(), loop)
+        except Exception:
+            pass
+
+    return cb
+
+
 app = Client(
     "hcity_bot",
     api_id=API_ID,
@@ -129,7 +157,7 @@ async def handle(_, msg: Message):
                 thumb=thumb,
                 file_name=f"{info['title'][:80]}.mp4",
                 supports_streaming=True,
-                progress=lambda c, t: status.edit_text(f"⬆️ Upload {c * 100 // t}%"),
+                progress=_progress(status, "⬆️ Upload"),
                 reply_to_message_id=msg.id,
             )
             await status.delete()
