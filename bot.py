@@ -146,6 +146,9 @@ async def handle(_, msg: Message):
                 f'<a href="{html.escape(info["page"])}">source</a>'
             )[:1000]
 
+            if os.path.getsize(dest) == 0:
+                raise hcity.ScrapeError("file 0 bytes hai")
+
             await app.send_video(
                 chat_id=msg.chat.id,
                 video=dest,
